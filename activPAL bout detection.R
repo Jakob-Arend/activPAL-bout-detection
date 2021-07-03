@@ -1,21 +1,56 @@
-#Jakob Arend
+#SETUP----
+#first we import all the libraries which we utilize
+#note here that you will need the activPAL package installed which has a dependency on the "chron" package
+#the most current activPAL package can be found at https://cran.r-project.org/src/contrib/Archive/activpalProcessing/activpalProcessing_1.0.2.tar.gz
 library(sjmisc)
 library(NLP)
 library(rlist)
-setwd("C:/Users/User/Desktop/PNC Lab/activPAL SLNW detection algorithm")
 
+#next up we need to set our working directory so that we can access our data
+#set variable "wd" equal to a string containing the full path to the directory you intend to work from
+wd <- "C:/Users/User/Desktop/PNC_Lab/activPAL-bout-detection"
+setwd(wd)
 
-test <- activpalProcessing::activpal.file.reader("data/SA008-SA008-AP840031 9Apr19 12-00am for 13d 16h 23m-VANE-PB08090417-Events.csv")
-test <- test[-c(1,2),]
-test
+#finishing our setup we now just have to provide the path to our data
+#set variable "data_path" equal to a string containing the partial path FROM YOUR WORKING DIRECTORY
+data_path <- "sample_data/SA008-SA008-AP840031 9Apr19 12-00am for 13d 16h 23m-VANE-PB08090417-Events.csv"
+data_path2 <-"sample_data/SA009-SA009-AP840032 11Apr19 12-00am for 12d 16h 22m-VANE-PB08090417-Events.csv"
 
-test2 <- activpalProcessing::activpal.file.reader("data/SA008-SA008-AP840031 9Apr19 12-00am for 13d 16h 23m-VANE-PB08090417-Events.csv")
-test2$time <- factor(test2$time)
-test2 <- activpalProcessing::second.by.second(test2)
-test2 <- test2[-c(1:86400),]
-test2
+#ALGORITHM----
+#now we're ready to go ahead and run our activPAL bout detection data reduction on our dataset
+#first we need to go ahead and read in our dataset
+data <- activpalProcessing::activpal.file.reader(data_path)
+data <- activpalProcessing::activpal.file.reader(data_path2)
 
-head(test2)
-head(test)
+#next we need to identify which 7 days our participant actually participated in data collection
+#we'll do this by identifying the 7 days with the most steps and using that to identify our start and stop date
 
-test2[61343:61352,]
+#first we count how many steps occur on each day
+days <- 0
+steps <- data.frame(days)
+for(i in 1:nrow(data)){
+  date <- substr(data[i, 1], 1, 10)
+  if(!(date %in% steps)){
+    steps[, date] <- data[i, 5]
+    steps$days <- steps$days + 1
+  } else {
+    steps[1, date] <- steps[1, date] + data[i, 5]
+  }
+}
+
+print(steps)
+
+#next we remove down to the 7 days with the largest step counts
+while(ncol(steps) > 8){
+  print(ncol(steps))
+  least_steps <- min(steps, na.rm = TRUE)
+  for(i in 2:ncol(data)){
+    if(least_steps == steps[1, i]){
+      steps[i] <- NULL
+      break
+    }
+  }
+}
+
+print(steps)
+
