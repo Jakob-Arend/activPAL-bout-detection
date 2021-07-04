@@ -52,4 +52,17 @@ valid_days = colnames(steps)
 #lastly just as a nicety we'll clean up our working env
 rm(steps, date, days, i, least_steps)
 
-#CUT DATA DOWN TO 7 DAY WINDOW----
+#CUT DATA TO 7 DAY WINDOW----
+#now that we have a list of valid days, we can cut out all data which took place outside of the experiment
+days_to_remove <- c()
+for(i in 1:nrow(data)){
+  if(!(substr(data[i, 1], 1, 10) %in% valid_days)){
+    days_to_remove <- c(days_to_remove, i)
+  }
+}
+data <- data[-c(days_to_remove),]
+
+#as before let's clean up our working env for clarity
+rm(i, days_to_remove)
+
+#IDENTIFY SLNW BOUTS----
