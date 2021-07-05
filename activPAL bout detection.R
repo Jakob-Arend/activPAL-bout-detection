@@ -66,6 +66,31 @@ data <- data[-c(days_to_remove),]
 rm(i, days_to_remove)
 
 #IDENTIFY SLNW BOUTS----
+#First we need to partition out our data into noon-noon days so we can effectively search for sleep
+curr_day <- paste(valid_days[1], "12:00:00", sep = " ")
+day_counter <- 1
+noon_days <- c()
+for(i in 1:nrow(data)){
+  if(as.numeric(difftime(data[i, 1], curr_day), units = "secs") > 0) {
+    noon_days <- c(noon_days, i)
+    day_counter <- day_counter + 1
+    if(day_counter > length(valid_days)){
+      break
+    } else {
+      curr_day <- paste(valid_days[day_counter], "12:00:00", sep = " ")
+      
+    }
+  }
+}
+
+#To account for the case that our day 7 data never crossed the noon threshold we add a fake index at one past the array
+if(day_counter == length(valid_days)){
+  noon_days <- c(noon_days, nrow(data) + 1)
+}
+
+#Now we can iterate through each day and identify our sleep periods
+
+
 #MOVE SLNW BOUTS TO NEW DATAFRAME----
 #IDENTIFY OTHER BOUTS----
 #SUMMARY STATISTICS PER DAY----
