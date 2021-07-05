@@ -13,7 +13,7 @@ setwd(wd)
 
 #finishing our setup we now just have to provide the path to our data
 #set variable "data_path" equal to a string containing the partial path FROM YOUR WORKING DIRECTORY
-data_path <-"sample_data/SA009-SA009-AP840032 11Apr19 12-00am for 12d 16h 22m-VANE-PB08090417-Events.csv"
+data_path <- "sample_data/SA009-SA009-AP840032 11Apr19 12-00am for 12d 16h 22m-VANE-PB08090417-Events.csv"
 
 #now we're ready to go ahead and run our activPAL bout detection data reduction on our dataset
 #first we need to go ahead and read in our dataset
@@ -66,3 +66,7 @@ data <- data[-c(days_to_remove),]
 rm(i, days_to_remove)
 
 #IDENTIFY SLNW BOUTS----
+#MOVE SLNW BOUTS TO NEW DATAFRAME----
+#IDENTIFY OTHER BOUTS----
+#SUMMARY STATISTICS PER DAY----
+#SUMMARY STATISTICS OVERALL----
