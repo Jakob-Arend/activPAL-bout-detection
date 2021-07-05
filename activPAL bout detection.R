@@ -89,6 +89,7 @@ if(day_counter == length(valid_days)){
 
 
 #Here we'll define two helper functions for later--namely to search forwards and backwards for potential SLNW bouts
+#Iteratively search ahead of a specific sleep index to locate any addition sleep (part 2 of SLNW version B)
 search_forwards <- function(sleep_index, curr_noon, noon_days, data){
   curr_position <- sleep_index + 1
   while(curr_position <= nrow(data) && (as.numeric(difftime(data[curr_position, 1], data[sleep_index, 1]), units = "secs") - data[sleep_index, 3]) <= 900){
@@ -110,24 +111,26 @@ search_forwards <- function(sleep_index, curr_noon, noon_days, data){
   return(c())
 }
 
+#Iteratively search behind a specific sleep index to locate any addition sleep (part 2 of SLNW version B)
 search_backwards <- function(sleep_index, curr_noon, noon_days, data){
-  backward_SLNW <- c()
   curr_position <- sleep_index - 1
-  zero_check = 1
-  if(curr_noon != 1){
-    zero_check = noon_days[curr_noon - 1]
-  }
-  while(curr_position > zero_check && (as.numeric(difftime(data[sleep_index, 1], data[curr_position, 1]), units = "secs") - data[curr_position, 3]) <= 900){
-    if((data[curr_position, 3] >= 7200 && data[curr_position, 4] < 2)){
-      backward_SLNW <- c(curr_position, backward_SLNW)
-    }else if(data[curr_position, 3] <= 1800 && data[curr_position, 4] < 2 && (data[curr_position, 5] - data[curr_position - 1, 5]) <= 20){
-      backward_SLNW <- c(curr_position, backward_SLNW)
-    }else if(curr_position != 1 && data[curr_position, 5] == data[curr_position - 1, 5]){
-      backward_SLNW <- c(curr_position, backward_SLNW)
-    }
+  while(curr_position >= 1 && (as.numeric(difftime(data[sleep_index, 1], data[curr_position, 1]), units = "secs") - data[curr_position, 3]) <= 900){
     curr_position <- curr_position - 1
   }
-  return(backward_SLNW)
+  backward_SLNW <- c((curr_position + 1):(sleep_index - 1))
+  small_sleep = FALSE
+  for(i in length(backward_SLNW)){
+    if(data[backward_SLNW[i], 3] >= 7200 && data[backward_SLNW[i], 4] < 2){
+      return(backward_SLNW)
+    }else if(data[backward_SLNW[i], 3] >= 1800 && data[backward_SLNW[i], 4] < 2){
+      small_sleep = TRUE
+    }
+  }
+  total_steps <- data[sleep_index, 5] - data[backward_SLNW[1], 5]
+  if((small_sleep && total_steps <= 20) || total_steps == 0){
+    return(backward_SLNW)
+  }
+  return(c())
 }
 
 #Now we can iterate through each day and identify our sleep periods--this is version B of the SLNW alg parts 1-2
@@ -146,7 +149,7 @@ for(i in 1:(length(noon_days) - 1)){
     sleep_indices <- c(sleep_indices, longest_bout)
   }
   for(j in 1:length(sleep_indices)){
-    all_SLNW <- c(all_SLNW, sleep_indices[j], search_forwards(sleep_indices[j], i, noon_days, data))
+    all_SLNW <- c(all_SLNW, search_backwards(sleep_indices[j], i, noon_days, data), sleep_indices[j], search_forwards(sleep_indices[j], i, noon_days, data))
   }
 }
 all_SLNW <- all_SLNW[!duplicated(all_SLNW)]
