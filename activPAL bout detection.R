@@ -16,7 +16,6 @@ setwd(wd)
 data_path <- "sample_data/SA009-SA009-AP840032 11Apr19 12-00am for 12d 16h 22m-VANE-PB08090417-Events.csv"
 
 #now we're ready to go ahead and run our activPAL bout detection data reduction on our dataset
-#first we need to go ahead and read in our dataset
 data <- activpalProcessing::activpal.file.reader(data_path)
 
 #IDENTIFY 7 DAY WINDOW----
@@ -88,10 +87,66 @@ if(day_counter == length(valid_days)){
   noon_days <- c(noon_days, nrow(data) + 1)
 }
 
-#Now we can iterate through each day and identify our sleep periods
 
+#Here we'll define two helper functions for later--namely to search forwards and backwards for potential SLNW bouts
+search_forwards <- function(sleep_index, curr_noon, noon_days, data){
+  forward_SLNW <- c()
+  curr_position <- sleep_index + 1
+  while(curr_position < noon_days[curr_noon + 1] && as.numeric(difftime(data[curr_position, 1], data[sleep_index, 1]), units = "secs") <= 900){
+    if((data[curr_position, 3] >= 7200 && data[curr_position, 4] < 2)){
+      forward_SLNW <- c(forward_SLNW, curr_position)
+    }else if(data[curr_position, 3] <= 1800 && data[curr_position, 4] < 2 && (data[curr_position, 5] - data[curr_position - 1, 5]) <= 20){
+      forward_SLNW <- c(forward_SLNW, curr_position)
+    }else if(data[curr_position, 5] == data[curr_position - 1, 5]){
+      forward_SLNW <- c(forward_SLNW, curr_position)
+    }
+    curr_position <- curr_position + 1
+  }
+  return(forward_SLNW)
+}
+
+search_backwards <- function(sleep_index, curr_noon, noon_days, data){
+  backward_SLNW <- c()
+  curr_position <- sleep_index - 1
+  zero_check = 1
+  if(curr_noon != 1){
+    zero_check = noon_days[curr_noon - 1]
+  }
+  while(curr_position > zero_check && (as.numeric(difftime(data[sleep_index, 1], data[curr_position, 1]), units = "secs") - data[curr_position, 3]) <= 900){
+    if((data[curr_position, 3] >= 7200 && data[curr_position, 4] < 2)){
+      backward_SLNW <- c(curr_position, backward_SLNW)
+    }else if(data[curr_position, 3] <= 1800 && data[curr_position, 4] < 2 && (data[curr_position, 5] - data[curr_position - 1, 5]) <= 20){
+      backward_SLNW <- c(curr_position, backward_SLNW)
+    }else if(curr_position != 1 && data[curr_position, 5] == data[curr_position - 1, 5]){
+      backward_SLNW <- c(curr_position, backward_SLNW)
+    }
+    curr_position <- curr_position - 1
+  }
+  return(backward_SLNW)
+}
+
+#Now we can iterate through each day and identify our sleep periods--this is version B of the SLNW alg parts 1-2
+sleep_data = data.frame(data[FALSE,])
+for(i in 1:(length(noon_days) - 1)){
+  sleep_indices = c()
+  longest_bout = 0
+  for(j in noon_days[i]:(noon_days[i + 1] - 1)){
+    if(data[j, 3] >= 18000 && data[j, 4] < 2){
+      sleep_indices <- c(sleep_indices, j)
+    } else if(data[j, 3] >= 7200 && data[j, 4] < 2){
+      longest_bout = j
+    }
+  }
+  if(length(sleep_indices) == 0){
+    sleep_indices <- c(sleep_indices, longest_bout)
+  }
+  for(j in 1:length(sleep_indices)){
+    print(data[sleep_indices[j],])
+  }
+}
 
 #MOVE SLNW BOUTS TO NEW DATAFRAME----
 #IDENTIFY OTHER BOUTS----
 #SUMMARY STATISTICS PER DAY----
 #SUMMARY STATISTICS OVERALL----
+
