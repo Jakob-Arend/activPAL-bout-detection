@@ -18,7 +18,7 @@ data_path <- "sample_data/SA009-SA009-AP840032 11Apr19 12-00am for 12d 16h 22m-V
 #now we're ready to go ahead and run our activPAL bout detection data reduction on our dataset
 data <- activpalProcessing::activpal.file.reader(data_path)
 
-#IDENTIFY 7 DAY WINDOW----
+#CUT DATA TO 7 DAY WINDOW----
 #we need to identify which 7 days our participant actually participated in data collection
 #we'll do this by identifying the 7 days with the most steps
 
@@ -51,7 +51,6 @@ valid_days = colnames(steps)
 #lastly just as a nicety we'll clean up our working env
 rm(steps, date, days, i, least_steps)
 
-#CUT DATA TO 7 DAY WINDOW----
 #now that we have a list of valid days, we can cut out all data which took place outside of the experiment
 days_to_remove <- c()
 for(i in 1:nrow(data)){
@@ -153,9 +152,48 @@ for(i in 1:(length(noon_days) - 1)){
   }
 }
 all_SLNW <- all_SLNW[!duplicated(all_SLNW)]
-print(data[all_SLNW,])
 
-#MOVE SLNW BOUTS TO NEW DATAFRAME----
-#IDENTIFY OTHER BOUTS----
+#Lastly we move these sleep bouts to a new dataframe
+sleep_data <- data.frame(data[all_SLNW,])
+data <- data[-c(all_SLNW),]
+
+#REMOVE INVALID DAYS----
+#Having removed all of our SLNW data, we now need to go through and remove all invalid days (part 3 of Version B)
+day_end <- c()
+counter <- 1
+for(i in 1:nrow(data)){
+  if(substr(data[i, 1], 1, 10) != valid_days[counter]){
+    day_end <- c(day_end, i-1)
+    counter <- counter + 1
+  }
+}
+day_end <- c(day_end, nrow(data))
+
+invalid_days <- c()
+for(i in 1:length(day_end)){
+  check_time <- 0
+  check_largest <- 0
+  if(i == 1){
+    start = 1
+    prev_steps = 0
+  }else{
+    start = day_end[i-1] + 1
+    prev_steps = data[start-1, 5]
+  }
+  for(j in start:day_end[i]){
+    check_time <- check_time + data[j, 3]
+    if(data[j, 3] > check_largest){
+      check_largest <- data[j, 3]
+    }
+  }
+  if(check_time < 36000 || check_largest >= 0.95 * check_time || (data[day_end[i], 5] - prev_steps) < 500){
+    print(i)
+    print(check_time)
+    print(check_largest)
+    print(data[day_end[i], 5] - prev_steps)
+    invalid_days <- c(invalid_days, i)
+  }
+}
+
 #SUMMARY STATISTICS PER DAY----
 #SUMMARY STATISTICS OVERALL----
