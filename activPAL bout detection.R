@@ -90,19 +90,24 @@ if(day_counter == length(valid_days)){
 
 #Here we'll define two helper functions for later--namely to search forwards and backwards for potential SLNW bouts
 search_forwards <- function(sleep_index, curr_noon, noon_days, data){
-  forward_SLNW <- c()
   curr_position <- sleep_index + 1
-  while(curr_position < noon_days[curr_noon + 1] && as.numeric(difftime(data[curr_position, 1], data[sleep_index, 1]), units = "secs") <= 900){
-    if((data[curr_position, 3] >= 7200 && data[curr_position, 4] < 2)){
-      forward_SLNW <- c(forward_SLNW, curr_position)
-    }else if(data[curr_position, 3] <= 1800 && data[curr_position, 4] < 2 && (data[curr_position, 5] - data[curr_position - 1, 5]) <= 20){
-      forward_SLNW <- c(forward_SLNW, curr_position)
-    }else if(data[curr_position, 5] == data[curr_position - 1, 5]){
-      forward_SLNW <- c(forward_SLNW, curr_position)
-    }
+  while(curr_position <= nrow(data) && (as.numeric(difftime(data[curr_position, 1], data[sleep_index, 1]), units = "secs") - data[sleep_index, 3]) <= 900){
     curr_position <- curr_position + 1
   }
-  return(forward_SLNW)
+  forward_SLNW <- c((sleep_index + 1):(curr_position - 1))
+  small_sleep = FALSE
+  for(i in length(forward_SLNW)){
+    if(data[forward_SLNW[i], 3] >= 7200 && data[forward_SLNW[i], 4] < 2){
+      return(forward_SLNW)
+    }else if(data[forward_SLNW[i], 3] >= 1800 && data[forward_SLNW[i], 4] < 2){
+      small_sleep = TRUE
+    }
+  }
+  total_steps <- data[forward_SLNW[length(forward_SLNW)], 5] - data[sleep_index, 5]
+  if((small_sleep && total_steps <= 20) || total_steps == 0){
+    return(forward_SLNW)
+  }
+  return(c())
 }
 
 search_backwards <- function(sleep_index, curr_noon, noon_days, data){
@@ -126,7 +131,7 @@ search_backwards <- function(sleep_index, curr_noon, noon_days, data){
 }
 
 #Now we can iterate through each day and identify our sleep periods--this is version B of the SLNW alg parts 1-2
-sleep_data = data.frame(data[FALSE,])
+all_SLNW <- c()
 for(i in 1:(length(noon_days) - 1)){
   sleep_indices = c()
   longest_bout = 0
@@ -141,12 +146,13 @@ for(i in 1:(length(noon_days) - 1)){
     sleep_indices <- c(sleep_indices, longest_bout)
   }
   for(j in 1:length(sleep_indices)){
-    print(data[sleep_indices[j],])
+    all_SLNW <- c(all_SLNW, sleep_indices[j], search_forwards(sleep_indices[j], i, noon_days, data))
   }
 }
+all_SLNW <- all_SLNW[!duplicated(all_SLNW)]
+print(data[all_SLNW,])
 
 #MOVE SLNW BOUTS TO NEW DATAFRAME----
 #IDENTIFY OTHER BOUTS----
 #SUMMARY STATISTICS PER DAY----
 #SUMMARY STATISTICS OVERALL----
-
