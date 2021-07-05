@@ -1,17 +1,11 @@
 #SETUP----
-#first we import all the libraries which we utilize
-#note here that you will need the activPAL package installed which has a dependency on the "chron" package
+#note that for this code you will need the activPAL package installed which has a dependency on the "chron" package
 #the most current activPAL package can be found at https://cran.r-project.org/src/contrib/Archive/activpalProcessing/activpalProcessing_1.0.2.tar.gz
-library(sjmisc)
-library(NLP)
-library(rlist)
 
-#next up we need to set our working directory so that we can access our data
 #set variable "wd" equal to a string containing the full path to the directory you intend to work from
 wd <- "C:/Users/User/Desktop/PNC_Lab/activPAL-bout-detection"
 setwd(wd)
 
-#finishing our setup we now just have to provide the path to our data
 #set variable "data_path" equal to a string containing the partial path FROM YOUR WORKING DIRECTORY
 data_path <- "sample_data/SA009-SA009-AP840032 11Apr19 12-00am for 12d 16h 22m-VANE-PB08090417-Events.csv"
 
@@ -63,11 +57,11 @@ data <- data[-c(days_to_remove),]
 #as before let's clean up our working env for clarity
 rm(i, days_to_remove)
 
-#IDENTIFY SLNW BOUTS----
+#REMOVE SLNW BOUTS----
 #First we need to partition out our data into noon-noon days so we can effectively search for sleep
 curr_day <- paste(valid_days[1], "12:00:00", sep = " ")
 day_counter <- 1
-noon_days <- c()
+noon_days <- c(1)
 for(i in 1:nrow(data)){
   if(as.numeric(difftime(data[i, 1], curr_day), units = "secs") > 0) {
     noon_days <- c(noon_days, i)
@@ -110,7 +104,7 @@ search_forwards <- function(sleep_index, curr_noon, noon_days, data){
   return(c())
 }
 
-#Iteratively search behind a specific sleep index to locate any addition sleep (part 2 of SLNW version B)
+#Iteratively search behind a specific sleep index to locate any additional sleep (part 2 of SLNW version B)
 search_backwards <- function(sleep_index, curr_noon, noon_days, data){
   curr_position <- sleep_index - 1
   while(curr_position >= 1 && (as.numeric(difftime(data[sleep_index, 1], data[curr_position, 1]), units = "secs") - data[curr_position, 3]) <= 900){
@@ -159,6 +153,7 @@ data <- data[-c(all_SLNW),]
 
 #REMOVE INVALID DAYS----
 #Having removed all of our SLNW data, we now need to go through and remove all invalid days (part 3 of Version B)
+#First up we need to quickly map the end of our days
 day_end <- c()
 counter <- 1
 for(i in 1:nrow(data)){
@@ -169,6 +164,7 @@ for(i in 1:nrow(data)){
 }
 day_end <- c(day_end, nrow(data))
 
+#next we use this end day mapping to iterate through each day and evaluate it to see if it fits the criteria for a valid day
 invalid_days <- c()
 for(i in 1:length(day_end)){
   check_time <- 0
@@ -187,13 +183,23 @@ for(i in 1:length(day_end)){
     }
   }
   if(check_time < 36000 || check_largest >= 0.95 * check_time || (data[day_end[i], 5] - prev_steps) < 500){
-    print(i)
-    print(check_time)
-    print(check_largest)
     print(data[day_end[i], 5] - prev_steps)
-    invalid_days <- c(invalid_days, i)
+    invalid_days <- c(invalid_days, valid_days[i])
   }
 }
 
-#SUMMARY STATISTICS PER DAY----
-#SUMMARY STATISTICS OVERALL----
+#Lastly we iterate back through the events one more time to take note of the index of every event on an invalid day
+to_remove <- c()
+for(i in 1:nrow(data)){
+  if(substr(data[i, 1], 1, 10) %in% invalid_days){
+    to_remove <- c(to_remove, i)
+  }
+}
+invalid_data <- data.frame(data[to_remove,])
+data <- data[-c(to_remove),]
+
+#real quick we'll once again clear up our working env
+rm(all_SLNW, check_largest, check_time, counter, curr_day, day_counter, day_end, i, j, longest_bout, noon_days, prev_steps, sleep_indices, start, to_remove)
+
+#SUMMARY STATISTICS----
+
