@@ -202,4 +202,85 @@ data <- data[-c(to_remove),]
 rm(all_SLNW, check_largest, check_time, counter, curr_day, day_counter, day_end, i, j, longest_bout, noon_days, prev_steps, sleep_indices, start, to_remove)
 
 #SUMMARY STATISTICS----
+#Lastly we'll pull out the valid days and build another day_end mapping
+new_valid_days <- c()
+for(i in 1:length(valid_days)){
+  if(!(valid_days[i] %in% invalid_days)){
+    new_valid_days <- c(new_valid_days, valid_days[i])
+  }
+}
 
+#building our mapping as before...
+day_end <- c(0)
+counter <- 1
+for(i in 1:nrow(data)){
+  if(substr(data[i, 1], 1, 10) != new_valid_days[counter]){
+    day_end <- c(day_end, i-1)
+    counter <- counter + 1
+  }
+}
+day_end <- c(day_end, nrow(data))
+
+#Now we just calculate whatever summary statistics we want
+all_sit <- c()
+all_stand <- c()
+all_move <- c()
+
+for(i in 1:length(new_valid_days)){
+  sit <- c()
+  stand <- c()
+  move <- c()
+  for(j in (day_end[i]+1):day_end[i+1]){
+    if(data[j, 4] == 0){
+      sit <- c(sit, data[j, 3])
+    }else if(data[j, 4] ==1){
+      stand <- c(stand, data[j, 3])
+    }else{
+      move <- c(move, data[j, 3])
+    }
+  }
+  all_sit <- c(all_sit, sit)
+  all_stand <- c(all_stand, stand)
+  all_move <- c(all_move, move)
+  print(paste("SUMMARY STATISTICS FOR: ", new_valid_days[i]))
+  print(paste("    TOTAL NUMBER OF SITTING/LYING BOUTS: ", toString(length(sit))))
+  print(paste("    LARGEST SITTING/LYING BOUT: ", toString(max(unlist(sit)))))
+  print(paste("    SMALLEST SITTING/LYING BOUT: ", toString(min(unlist(sit)))))
+  print(paste("    AVERAGE SITTING/LYING BOUT: ", toString(mean(sit))))
+  print("")
+  print(paste("    TOTAL NUMBER OF STANDING BOUTS: ", toString(length(stand))))
+  print(paste("    LARGEST STANDING BOUT: ", toString(max(unlist(stand)))))
+  print(paste("    SMALLEST STANDING BOUT: ", toString(min(unlist(stand)))))
+  print(paste("    AVERAGE STANDING BOUT: ", toString(mean(stand))))
+  print("")
+  print(paste("    TOTAL NUMBER OF MOVING BOUTS: ", toString(length(move))))
+  print(paste("    LARGEST MOVING BOUT: ", toString(max(unlist(move)))))
+  print(paste("    SMALLEST MOVING BOUT: ", toString(min(unlist(move)))))
+  print(paste("    AVERAGE MOVING BOUT: ", toString(mean(move))))
+  print("")
+  print("")
+}
+
+for(i in 1){
+  print("SUMMARY STATISTICS FOR ENTIRE DATASET")
+  print(paste("    TOTAL NUMBER OF SITTING/LYING BOUTS: ", toString(length(all_sit))))
+  print(paste("    LARGEST SITTING/LYING BOUT: ", toString(max(unlist(all_sit)))))
+  print(paste("    SMALLEST SITTING/LYING BOUT: ", toString(min(unlist(all_sit)))))
+  print(paste("    AVERAGE SITTING/LYING BOUT: ", toString(mean(all_sit))))
+  print("")
+  print(paste("    TOTAL NUMBER OF STANDING BOUTS: ", toString(length(all_stand))))
+  print(paste("    LARGEST STANDING BOUT: ", toString(max(unlist(all_stand)))))
+  print(paste("    SMALLEST STANDING BOUT: ", toString(min(unlist(all_stand)))))
+  print(paste("    AVERAGE STANDING BOUT: ", toString(mean(stand))))
+  print("")
+  print(paste("    TOTAL NUMBER OF MOVING BOUTS: ", toString(length(all_move))))
+  print(paste("    LARGEST MOVING BOUT: ", toString(max(unlist(all_move)))))
+  print(paste("    SMALLEST MOVING BOUT: ", toString(min(unlist(all_move)))))
+  print(paste("    AVERAGE MOVING BOUT: ", toString(mean(all_move))))
+  print("")
+  print("")
+}
+
+write.csv(data, "valid_data.csv")
+write.csv(invalid_data, "invalid_data.csv")
+write.csv(sleep_data, "sleep_data.csv")
