@@ -8,7 +8,6 @@ data_path <- "sample_data/SA009-SA009-AP840032 11Apr19 12-00am for 12d 16h 22m-V
 data <- activpalProcessing::activpal.file.reader(data_path)
 
 #FIND DAY RANGE ----
-
 curr_day <- as.Date(substr(data[1, 1], 1, 10))
 last_day <- as.Date(substr(data[nrow(data), 1], 1, 10))
 step_counts <- data.frame("remove_me" = 0)
@@ -31,13 +30,13 @@ if(ncol(step_counts) < num_days){
   print(ncol(step_counts))
   num_days <- ncol(step_counts)
 }
-
-
-
-
-curr_index <- ncol(step_counts) - num_days + 1
 start_index <- 0
 max <- 0
-while(curr_index != -1){
-  if()
+for(i in (ncol(step_counts) - num_days + 1):1){
+  possible_max <- sum(step_counts[,i:(i + num_days - 1)])
+  if(possible_max > max){
+    max <- possible_max
+    start_index <- i
+  }
 }
+valid_days <- c()
