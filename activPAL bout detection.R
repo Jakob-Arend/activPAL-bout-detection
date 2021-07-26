@@ -165,6 +165,7 @@ for(i in 1:nrow(data)){
 day_end <- c(day_end, nrow(data))
 
 #next we use this end day mapping to iterate through each day and evaluate it to see if it fits the criteria for a valid day
+hour_cutoffs <- c(28800, 36000, 50400)
 invalid_days <- c()
 for(i in 1:length(day_end)){
   check_time <- 0
@@ -182,6 +183,7 @@ for(i in 1:length(day_end)){
       check_largest <- data[j, 3]
     }
   }
+  #--------------------------ADJUST VALID DAY PARAMETERS------------------------------
   if(check_time < 36000 || check_largest >= 0.95 * check_time || (data[day_end[i], 5] - prev_steps) < 500){
     print(data[day_end[i], 5] - prev_steps)
     invalid_days <- c(invalid_days, valid_days[i])
@@ -284,3 +286,6 @@ for(i in 1){
 write.csv(data, "valid_data.csv")
 write.csv(invalid_data, "invalid_data.csv")
 write.csv(sleep_data, "sleep_data.csv")
+
+
+activpalProcessing::process.AP(data_path)
