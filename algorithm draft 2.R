@@ -7,7 +7,7 @@ setwd(wd)
 data_path <- "sample_data/SA009-SA009-AP840032 11Apr19 12-00am for 12d 16h 22m-VANE-PB08090417-Events.csv"
 data <- activpalProcessing::activpal.file.reader(data_path)
 
-#FIND DAY RANGE ----
+#REDUCE TO DAY RANGE ----
 curr_day <- as.Date(substr(data[1, 1], 1, 10))
 last_day <- as.Date(substr(data[nrow(data), 1], 1, 10))
 step_counts <- data.frame("remove_me" = 0)
@@ -40,3 +40,17 @@ for(i in (ncol(step_counts) - num_days + 1):1){
   }
 }
 valid_days <- c()
+for(i in 0:6){
+  valid_days <- c(valid_days, colnames(step_counts)[start_index + i])
+}
+step_counts <- step_counts[valid_days]
+days_to_remove <- c()
+for(i in 1:nrow(data)){
+  if(!(substr(data[i, 1], 1, 10) %in% valid_days)){
+    days_to_remove <- c(days_to_remove, i)
+  }
+}
+data <- data[-c(days_to_remove),]
+rm(curr_day, date, days_to_remove, i, last_day, max, possible_max, start_index)
+
+#
