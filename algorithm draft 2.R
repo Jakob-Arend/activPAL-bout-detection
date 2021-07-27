@@ -52,7 +52,9 @@ search_backwards <- function(sleep_index, data){
 }
 
 #WRAPPER LOOP FOR FULL ALGORITHM ----
+data_frames <- list()
 sleep_data_frames <- list()
+invalid_data_frames <- list()
 for(i in 1:length(paths)){
   data <- activpalProcessing::activpal.file.reader(paths[i])
   #USER CONTROLLED OPTIONS ----
@@ -112,7 +114,6 @@ for(i in 1:length(paths)){
   rm(curr_day, date, days_to_remove, i, last_day, max, possible_max, start_index)
   
   #SLNW ALGORITHM ----
-  #SLNW ALGORITHM ----
   curr_day <- paste(valid_days[1], "12:00:00", sep = " ")
   noon_days <- c(1)
   i = 1
@@ -134,13 +135,16 @@ for(i in 1:length(paths)){
   }
   noon_days <- c(noon_days, nrow(data) + 1)
   
-  #Now we can iterate through each day and identify our sleep periods--this is version B of the SLNW alg parts 1-2
   all_SLNW <- c()
   i = 1
   while(i < length(noon_days)){
+    stop_index <- i + 1
+    while(noon_days[stop_index] == -1){
+      stop_index <- stop_index + 1
+    }
     sleep_indices = c()
     longest_bout = -1
-    for(j in noon_days[i]:(noon_days[i + 1] - 1)){
+    for(j in noon_days[i]:(noon_days[stop_index] - 1)){
       if(data[j, 3] >= 18000 && data[j, 4] < 2){
         sleep_indices <- c(sleep_indices, j)
       } else if(data[j, 3] >= 7200 && data[j, 4] < 2){
@@ -155,14 +159,62 @@ for(i in 1:length(paths)){
         all_SLNW <- c(all_SLNW, search_backwards(sleep_indices[j], data), sleep_indices[j], search_forwards(sleep_indices[j], data))
       }
     }
-    i <- i + 1
+    i <- stop_index
   }
   all_SLNW <- all_SLNW[!duplicated(all_SLNW)]
-  
-  #Lastly we move these sleep bouts to a new dataframe
   sleep_data <- data.frame(data[all_SLNW,])
   data <- data[-c(all_SLNW),]
+  
+  #REMOVE INVALID DAYS ----
+  day_end <- c()
+  counter <- 1
+  for(i in 1:nrow(data)){
+    if(substr(data[i, 1], 1, 10) != valid_days[counter]){
+      day_end <- c(day_end, i-1)
+      counter <- counter + 1
+    }
+  }
+  day_end <- c(day_end, nrow(data))
+  
+  #next we use this end day mapping to iterate through each day and evaluate it to see if it fits the criteria for a valid day
+  hour_cutoffs <- c(28800, 36000, 50400)
+  invalid_days <- c()
+  for(i in 1:length(day_end)){
+    check_time <- 0
+    check_largest <- 0
+    if(i == 1){
+      start = 1
+      prev_steps = 0
+    }else{
+      start = day_end[i-1] + 1
+      prev_steps = data[start-1, 5]
+    }
+    for(j in start:day_end[i]){
+      check_time <- check_time + data[j, 3]
+      if(data[j, 3] > check_largest){
+        check_largest <- data[j, 3]
+      }
+    }
+    #--------------------------ADJUST VALID DAY PARAMETERS------------------------------
+    if(check_time < 36000 || check_largest >= 0.95 * check_time || (data[day_end[i], 5] - prev_steps) < 500){
+      #print(data[day_end[i], 5] - prev_steps)
+      invalid_days <- c(invalid_days, valid_days[i])
+    }
+  }
+  
+  #Lastly we iterate back through the events one more time to take note of the index of every event on an invalid day
+  to_remove <- c()
+  for(i in 1:nrow(data)){
+    if(substr(data[i, 1], 1, 10) %in% invalid_days){
+      to_remove <- c(to_remove, i)
+    }
+  }
+  invalid_data <- data.frame(data[to_remove,])
+  data <- data[-c(to_remove),]
+  
+  data_frames[[length(data_frames) + 1]] <- data
   sleep_data_frames[[length(sleep_data_frames) + 1]] <- sleep_data
+  invalid_data_frames[[length(invalid_data_frames) + 1]] <- invalid_data
 }
 
 
