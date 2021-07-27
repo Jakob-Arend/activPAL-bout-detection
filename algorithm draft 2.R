@@ -4,7 +4,8 @@ num_days <- 7
 #READ IN DATA ----
 wd <- "C:/Users/User/Desktop/PNC_Lab/activPAL-bout-detection"
 setwd(wd)
-data_path <- "sample_data/SA011-SA011-AP840025 17Apr19 12-00am for 6d 17h 22m-VANE-PB08090417-Events.csv"
+data_path <- "sample_data/SA008-SA008-AP840031 9Apr19 12-00am for 13d 16h 23m-VANE-PB08090417-Events.csv"
+data_path <- "sample_data/SA009-SA009-AP840032 11Apr19 12-00am for 12d 16h 22m-VANE-PB08090417-Events.csv"
 data <- activpalProcessing::activpal.file.reader(data_path)
 
 #REDUCE TO DAY RANGE ----
@@ -60,5 +61,4 @@ if(length(days_to_remove) != 0){
 }
 rm(curr_day, date, days_to_remove, i, last_day, max, possible_max, start_index)
 
-#
-
+#PROCESS DATA FOR SLNW ALGORITHM ----
