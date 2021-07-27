@@ -176,7 +176,6 @@ for(i in 1:length(paths)){
   }
   day_end <- c(day_end, nrow(data))
   
-  #next we use this end day mapping to iterate through each day and evaluate it to see if it fits the criteria for a valid day
   hour_cutoffs <- c(28800, 36000, 50400)
   invalid_days <- c()
   for(i in 1:length(day_end)){
@@ -202,7 +201,6 @@ for(i in 1:length(paths)){
     }
   }
   
-  #Lastly we iterate back through the events one more time to take note of the index of every event on an invalid day
   to_remove <- c()
   for(i in 1:nrow(data)){
     if(substr(data[i, 1], 1, 10) %in% invalid_days){
@@ -216,118 +214,3 @@ for(i in 1:length(paths)){
   sleep_data_frames[[length(sleep_data_frames) + 1]] <- sleep_data
   invalid_data_frames[[length(invalid_data_frames) + 1]] <- invalid_data
 }
-
-
-
-lol <- 'for(i in c(1)){
-  data <- activpalProcessing::activpal.file.reader(paths[1])
-  #USER CONTROLLED OPTIONS ----
-  num_days <- 7
-  
-  #REDUCE TO DAY RANGE ----
-  curr_day <- as.Date(substr(data[1, 1], 1, 10))
-  last_day <- as.Date(substr(data[nrow(data), 1], 1, 10))
-  step_counts <- data.frame("remove_me" = 0)
-  step_counts[, as.character(curr_day - 1)] <- 0
-  step_counts$remove_me <- NULL
-  while(as.numeric(difftime(last_day, curr_day)) != -1){
-    step_counts[, as.character(curr_day)] <- 0
-    curr_day <- curr_day + 1
-  }
-  for(i in 1:nrow(data)){
-    date <- substr(data[i, 1], 1, 10)
-    step_counts[1, date] <- data[i, 5]
-  }
-  for(i in 2:ncol(step_counts)){
-    if(step_counts[1, i] == 0){
-      step_counts[1, i] = step_counts[1, i-1]
-    }
-  }
-  for(i in ncol(step_counts):2){
-    step_counts[1, i] <- step_counts[1, i] - step_counts[1, i-1]
-  }
-  step_counts[, 1] <- NULL
-  if(ncol(step_counts) < num_days){
-    print("USER HAS SPECIFIED MORE DAYS THAN ARE AVAILABLE.  REDUCING 'num_days' TO:")
-    print(ncol(step_counts))
-    num_days <- ncol(step_counts)
-  }
-  start_index <- 0
-  max <- 0
-  for(i in (ncol(step_counts) - num_days + 1):1){
-    possible_max <- sum(step_counts[,i:(i + num_days - 1)])
-    if(possible_max > max){
-      max <- possible_max
-      start_index <- i
-    }
-  }
-  valid_days <- c()
-  for(i in 0:(num_days - 1)){
-    valid_days <- c(valid_days, colnames(step_counts)[start_index + i])
-  }
-  step_counts <- step_counts[valid_days]
-  days_to_remove <- c()
-  for(i in 1:nrow(data)){
-    if(!(substr(data[i, 1], 1, 10) %in% valid_days)){
-      days_to_remove <- c(days_to_remove, i)
-    }
-  }
-  if(length(days_to_remove) != 0){
-    data <- data[-c(days_to_remove),]
-  }
-  rm(curr_day, date, days_to_remove, i, last_day, max, possible_max, start_index)
-  
-  #SLNW ALGORITHM ----
-  curr_day <- paste(valid_days[1], "12:00:00", sep = " ")
-  noon_days <- c(1)
-  i = 1
-  while(i <= nrow(data)){
-    if(as.numeric(difftime(data[i, 1], curr_day), units = "secs") > 86400) {
-      noon_days <- c(noon_days, -1)
-      curr_day <- paste(valid_days[length(noon_days)], "12:00:00", sep = " ")
-      next
-    }
-    if(as.numeric(difftime(data[i, 1], curr_day), units = "secs") > 0) {
-      noon_days <- c(noon_days, i)
-      if(length(noon_days) > length(valid_days)){
-        break
-      } else {
-        curr_day <- paste(valid_days[length(noon_days)], "12:00:00", sep = " ")
-      }
-    }
-    i <- i + 1
-  }
-  noon_days <- c(noon_days, nrow(data) + 1)
-  
-  #Now we can iterate through each day and identify our sleep periods--this is version B of the SLNW alg parts 1-2
-  all_SLNW <- c()
-  i = 1
-  while(i < length(noon_days)){
-    sleep_indices = c()
-    longest_bout = -1
-    for(j in noon_days[i]:(noon_days[i + 1] - 1)){
-      if(data[j, 3] >= 18000 && data[j, 4] < 2){
-        sleep_indices <- c(sleep_indices, j)
-      } else if(data[j, 3] >= 7200 && data[j, 4] < 2){
-        longest_bout = j
-      }
-    }
-    if(length(sleep_indices) == 0 && longest_bout != -1){
-      sleep_indices <- c(sleep_indices, longest_bout)
-    }
-    if(length(sleep_indices) > 0){
-      for(j in 1:length(sleep_indices)){
-        all_SLNW <- c(all_SLNW, search_backwards(sleep_indices[j], data), sleep_indices[j], search_forwards(sleep_indices[j], data))
-      }
-    }
-    i <- i + 1
-  }
-  all_SLNW <- all_SLNW[!duplicated(all_SLNW)]
-  
-  #Lastly we move these sleep bouts to a new dataframe
-  sleep_data <- data.frame(data[all_SLNW,])
-  data <- data[-c(all_SLNW),]
-  
-  
-}'
-
