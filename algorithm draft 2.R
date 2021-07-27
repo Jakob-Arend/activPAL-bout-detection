@@ -4,7 +4,7 @@ num_days <- 7
 #READ IN DATA ----
 wd <- "C:/Users/User/Desktop/PNC_Lab/activPAL-bout-detection"
 setwd(wd)
-data_path <- "sample_data/SA010-SA010-AP840027 16Apr19 12-00am for 8d 17h 11m-VANE-PB08090417-Events.csv"
+data_path <- "sample_data/SA011-SA011-AP840025 17Apr19 12-00am for 6d 17h 22m-VANE-PB08090417-Events.csv"
 data <- activpalProcessing::activpal.file.reader(data_path)
 
 #REDUCE TO DAY RANGE ----
@@ -45,7 +45,7 @@ for(i in (ncol(step_counts) - num_days + 1):1){
   }
 }
 valid_days <- c()
-for(i in 0:6){
+for(i in 0:(num_days - 1)){
   valid_days <- c(valid_days, colnames(step_counts)[start_index + i])
 }
 step_counts <- step_counts[valid_days]
