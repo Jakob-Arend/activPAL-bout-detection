@@ -222,3 +222,18 @@ for(i in 1:length(paths)){
   #CLEAN UP WORKING ENV ----
   rm(all_SLNW, check_largest, check_time, counter, curr_day, day_end, hour_cutoffs, i, invalid_days, j, longest_bout, noon_days, num_days, prev_steps, sleep_indices, start,stop_index, to_remove, valid_days, data, invalid_data, sleep_data, step_counts)
 }
+
+#example of summary statistics ----
+f = 3
+example_data <- data_frames[[f]]
+example_invalid_data <- invalid_data_frames[[f]]
+example_sleep_data <- sleep_data_frames[[f]]
+non_SLNW_inactivity <- 0
+for(i in 1:nrow(example_data)){
+  if(example_data[i, 4] < 2){
+    non_SLNW_inactivity <- non_SLNW_inactivity + example_data[i, 3]
+  }
+}
+total_inactivity = non_SLNW_inactivity + sum(example_sleep_data$interval)
+global_sedentary_time <- (total_inactivity / (sum(example_data$interval) + total_inactivity))
+print(global_sedentary_time)
