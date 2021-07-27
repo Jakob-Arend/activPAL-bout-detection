@@ -4,7 +4,7 @@ num_days <- 7
 #READ IN DATA ----
 wd <- "C:/Users/User/Desktop/PNC_Lab/activPAL-bout-detection"
 setwd(wd)
-data_path <- "sample_data/SA008-SA008-AP840031 9Apr19 12-00am for 13d 16h 23m-VANE-PB08090417-Events.csv"
+data_path <- "sample_data/SA010-SA010-AP840027 16Apr19 12-00am for 8d 17h 11m-VANE-PB08090417-Events.csv"
 data <- activpalProcessing::activpal.file.reader(data_path)
 
 #REDUCE TO DAY RANGE ----
@@ -21,10 +21,13 @@ for(i in 1:nrow(data)){
   date <- substr(data[i, 1], 1, 10)
   step_counts[1, date] <- data[i, 5]
 }
-for(i in ncol(step_counts):2){
-  if(step_counts[1, i] != 0){
-    step_counts[1, i] <- step_counts[1, i] - step_counts[1, i-1]
+for(i in 2:ncol(step_counts)){
+  if(step_counts[1, i] == 0){
+    step_counts[1, i] = step_counts[1, i-1]
   }
+}
+for(i in ncol(step_counts):2){
+    step_counts[1, i] <- step_counts[1, i] - step_counts[1, i-1]
 }
 step_counts[, 1] <- NULL
 if(ncol(step_counts) < num_days){
@@ -52,7 +55,10 @@ for(i in 1:nrow(data)){
     days_to_remove <- c(days_to_remove, i)
   }
 }
-data <- data[-c(days_to_remove),]
+if(length(days_to_remove) != 0){
+  data <- data[-c(days_to_remove),]
+}
 rm(curr_day, date, days_to_remove, i, last_day, max, possible_max, start_index)
 
 #
+
