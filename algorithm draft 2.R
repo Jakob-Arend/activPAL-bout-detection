@@ -1,12 +1,14 @@
 #SET WD AND PATHS ----
 wd <- "C:/Users/User/Desktop/PNC_Lab/activPAL-bout-detection"
 setwd(wd)
-path1 <- "sample_data/SA008-SA008-AP840031 9Apr19 12-00am for 13d 16h 23m-VANE-PB08090417-Events.csv"
-path2 <- "sample_data/SA009-SA009-AP840032 11Apr19 12-00am for 12d 16h 22m-VANE-PB08090417-Events.csv"
-path3 <- "sample_data/SA010-SA010-AP840027 16Apr19 12-00am for 8d 17h 11m-VANE-PB08090417-Events.csv"
-path4 <- "sample_data/SA011-SA011-AP840025 17Apr19 12-00am for 6d 17h 22m-VANE-PB08090417-Events.csv"
-paths <- c(path1, path2, path3, path4)
-rm(path1, path2, path3, path4)
+#path1 <- "sample_data/SA008-SA008-AP840031 9Apr19 12-00am for 13d 16h 23m-VANE-PB08090417-Events.csv"
+#path2 <- "sample_data/SA009-SA009-AP840032 11Apr19 12-00am for 12d 16h 22m-VANE-PB08090417-Events.csv"
+#path3 <- "sample_data/SA010-SA010-AP840027 16Apr19 12-00am for 8d 17h 11m-VANE-PB08090417-Events.csv"
+#path4 <- "sample_data/SA011-SA011-AP840025 17Apr19 12-00am for 6d 17h 22m-VANE-PB08090417-Events.csv"
+#paths <- c(path1, path2, path3, path4)
+paths <- c("sample_data/SA004-AP840029 20Feb19 4-14pm for 7d-VANE-PB08101257-Events.csv", "sample_data/SA006-AP840024 20Feb19 4-15pm for 7d-VANE-PB08101257-Events.csv", "sample_data/SA005-AP840030 20Feb19 4-17pm for 6d 23h 59m-VANE-PB08101257-Events.csv")
+
+#rm(path1, path2, path3, path4)
 
 #HELPER FUNCTIONS FOR LATER ----
 search_forwards <- function(sleep_index, data){
@@ -51,7 +53,7 @@ search_backwards <- function(sleep_index, data){
   return(c())
 }
 
-#WRAPPER LOOP FOR FULL ALGORITHM ----
+#LOOP FOR FULL ALGORITHM ----
 data_frames <- list()
 sleep_data_frames <- list()
 invalid_data_frames <- list()
@@ -207,10 +209,16 @@ for(i in 1:length(paths)){
       to_remove <- c(to_remove, i)
     }
   }
-  invalid_data <- data.frame(data[to_remove,])
-  data <- data[-c(to_remove),]
-  
+  if(length(to_remove) != 0){
+    invalid_data <- data.frame(data[to_remove,])
+    data <- data[-c(to_remove),]
+  } else{
+    invalid_data <- data.frame()
+  }
+    
   data_frames[[length(data_frames) + 1]] <- data
   sleep_data_frames[[length(sleep_data_frames) + 1]] <- sleep_data
   invalid_data_frames[[length(invalid_data_frames) + 1]] <- invalid_data
+  #CLEAN UP WORKING ENV ----
+  rm(all_SLNW, check_largest, check_time, counter, curr_day, day_end, hour_cutoffs, i, invalid_days, j, longest_bout, noon_days, num_days, prev_steps, sleep_indices, start,stop_index, to_remove, valid_days, data, invalid_data, sleep_data, step_counts)
 }

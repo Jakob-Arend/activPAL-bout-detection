@@ -1,0 +1,25 @@
+statistics to calculate:
+	2010 paper:
+		global sedentary time
+		distribution of the length of sedentary bouts
+			power distribution (C, alpha)
+			standard error
+			median of power law distribution
+		measure of pattern of sedentary time accumulation
+			time in sedentary bouts above median
+
+	2015 paper:
+		appears to be the 2010 paper
+
+currently done:
+	model works well and produces tennable output for most .csv files
+	can take multiple .csv at once
+	manually going through the dataframe, the sleep output is correct
+	can run on a variable number of days
+
+final todo:
+	patch whatever error is causing it to glitch on one file out of the 20 I have--then test run on the entire database if possible
+	remove hard coding of constants in SLNW alg and replace with variables at the start
+	calculate whatever summary statistics are needed
+	output an activPAL heat map
+	output to .csv instead of dataframe
