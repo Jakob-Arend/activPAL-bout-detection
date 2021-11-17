@@ -12,8 +12,7 @@ paths <- c("SA001-SA001-AP840027 8Mar19 12-00am for 14d-VANE-PB08090417-Events.c
            "SA006-SA006-AP840029 5Apr19 12-00am for 11d 17h 24m-VANE-PB08090417-Events.csv", "SA007-SA007-AP840030 6Apr19 12-00am for 14d-VANE-PB08090417-Events.csv",
            "SA008-SA008-AP840031 9Apr19 12-00am for 13d 16h 23m-VANE-PB08090417-Events.csv", "SA009-SA009-AP840032 11Apr19 12-00am for 12d 16h 22m-VANE-PB08090417-Events.csv",
            "SA010-SA010-AP840027 16Apr19 12-00am for 8d 17h 11m-VANE-PB08090417-Events.csv", "SA011-SA011-AP840025 17Apr19 12-00am for 6d 17h 22m-VANE-PB08090417-Events.csv")
-path <- paste("sample_data/", paths[4], sep="")
-heatmap_path <- paste("output/heat_maps/", unlist(strsplit(paths[4], "\\."))[1], "-HEAT MAP.png", sep="")
+path <- paste("sample_data/", paths[3], sep="")
 
 consecutive_days <- 7
 always_slnw_min_hours <- 5
@@ -274,39 +273,27 @@ valid_days <- setdiff(valid_days, invalid_days)
 rm(curr_day, day_index, edge_case, i, invalid_day_indices, longest_waking_wear_hours, old_day, start_index, total_steps, total_waking_wear_hours)
 
 #Plot heat map ----
-
 dates <- c()
 times <- c()
-yends <- c()
 for(i in 1:nrow(data)){
   d <- convert_time(data[i, 1])[1]
   d <- gsub("-", "/", d)
-  d <- substring(d, 6)
-  dates <- c(dates, d)
+  dates <- c(dates, substring(d, 6))
   t <-convert_time(data[i, 1])[2]
-  t <- period_to_seconds(hms(t))
-  times <- c(times, t)
-  yend <- min(t+data[i, 3], 86400)
-  yends <- c(yends, yend)
+  times <- c(times, period_to_seconds(hms(t)))
 }
 
 data$dates <- dates
 data$times <- times
-data$yends <- yends
-data$activity <- as.factor(data$activity)
+data$fill <- times/86400
 
 nums <- seq(from = 0, to = 86400, length.out = 13)
 labels <- c("00:00", "02:00", "04:00", "06:00", "08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00", "24:00")
-colors <- c("0" = "red", "1" = "yellow", "2" = "green4")
 ggplot() +
-  geom_segment(data=data, size=12, aes(y=times, yend=yends , x=dates, xend=dates, color=activity)) +
-  scale_color_manual(values = colors) +
+  geom_segment(data=data, color="steelblue", size=12, aes(y=times, yend=(times+interval) , x=dates, xend=dates, alpha=fill)) +
   scale_y_continuous(breaks = nums, labels = labels, limits = c(nums[1], nums[length(nums)])) +
   ggtitle("ActivPAL Waking Wear Heat Map") +
   theme(plot.title = element_text(hjust = 0.5)) +
   xlab("Assessement date") +
   ylab("24 hour time")
 
-
-
-ggsave(filename=heatmap_path, device=png)
