@@ -1,7 +1,9 @@
 SLNW <- function(file){
   #Code constants ----
-  working_directory <- "C:/Users/User/Desktop/PNC_Lab/activPAL-bout-detection"
-  heatmap_path <- paste("OUTPUT/heat_maps/", unlist(strsplit(file, "\\."))[1], "-HEAT MAP.png", sep="")
+  file_parts <- unlist(strsplit(file, "/"))
+  num_parts <- length(file_parts)
+  path <- paste(file_parts[num_parts-2], "/", file_parts[num_parts-1], "/", file_parts[num_parts], sep="")
+  heatmap_path <- paste("OUTPUT/heat_maps/", file_parts[num_parts], "-HEAT MAP.png", sep="")
   
   consecutive_days <- 7
   always_slnw_min_hours <- 5
@@ -62,7 +64,7 @@ SLNW <- function(file){
   }
   
   #Convert from .csv to data frame ----
-  data <- activpalProcessing::activpal.file.reader(file)
+  data <- activpalProcessing::activpal.file.reader(path)
   
   data$steps <- integer(nrow(data))
   for(i in 2:nrow(data)){
