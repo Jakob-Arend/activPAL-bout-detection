@@ -9,7 +9,6 @@ statistics to calculate:
 				Gini coefficient can be used instead of graphing as it captures the essential info of the graph
 		measure of pattern of sedentary time accumulation
 			time in sedentary bouts above median
-
 	2015 paper:
 		appears to be the 2010 paper
 
@@ -30,7 +29,7 @@ TOTAL STATISTICS:
 	sedentary behavior profiling
 		start, finish, duration
 		average num of bouts per day
-		average duration, min, max, median, standard deviation, coefficient of variation
+		average duration, min, max, median, interquartile range, standard deviation, coefficient of variation
 		less than 20 min duration, 20 min or more, all bouts
 		30, 60, 90 replacements for 20
 		less than 5, 5-9:59, 10 and less than 20
@@ -44,4 +43,7 @@ TOTAL STATISTICS:
 		light vs moderate
 			sum stat of step count and activity score and time
 	get exact stats
-	make model
+
+implement summary statistic creator
+	input as list of lists ex: list(list(activity 1, lower bound 1, upper bound 1), list(activity 2, lower bound 2, upper bound 2))
+	for each list in lists, compute relevant statistics and output to user specified folder

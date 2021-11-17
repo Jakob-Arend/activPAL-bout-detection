@@ -1,0 +1,16 @@
+"","sitting","standing","stepping"
+"count",231,1540,17810
+"minimum time",10.2,0.3,0.7
+"maximum time",16366,1564.4,5.9
+"mean time",1071.62640692641,37.1104545454545,1.39701852891634
+"median time",416.2,16.2,1.1
+"time standard deviation",1694.29535750812,75.8598434123634,0.860358878845967
+"time coefficient of deviation",1.58105039830777,2.04416368221647,0.615853591801207
+"total time",247545.7,57150.1,24880.9
+"minimum steps",0,0,2
+"maximum steps",0,0,2
+"mean steps",0,0,2
+"median steps",0,0,2
+"steps standard deviation",0,0,0
+"steps coefficient of deviation",NA,NA,0
+"total steps",0,0,35620

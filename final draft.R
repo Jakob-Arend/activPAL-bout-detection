@@ -1,3 +1,8 @@
+rm(list = ls())
+library(activpalProcessing)
+library(lubridate)
+library(ggplot2)
+library(Gini)
 SLNW <- function(folder, file){
   #Code constants ----
   file_parts <- unlist(strsplit(file, "/"))
@@ -296,27 +301,139 @@ SLNW <- function(folder, file){
     ylab("24 hour time")
 
   ggsave(filename=heatmap_path, device=png)
+  
+  for(i in 1:3){
+    data[,ncol(data)] <- NULL
+  }
+  
   }else{
     print("ERROR: No valid data left to plot.")
   }
   return(data)
 }
 
+get_summary_statistics <-function(data){
+  if(nrow(data) == 0){
+    stats <- data.frame(matrix(nrow=15, ncol=3), row.names=c("count", "minimum time", "maximum time", "mean time", "median time", "time standard deviation", "time coefficient of deviation", "total time", "minimum steps", "maximum steps", "mean steps", "median steps", "steps standard deviation", "steps coefficient of deviation", "total steps"))
+    colnames(stats) <- c("sitting", "standing", "stepping")
+    return(stats)
+  }
+  sitting_time <- c()
+  standing_time <- c()
+  stepping_time <- c()
+  sitting_steps <- c()
+  standing_steps <- c()
+  stepping_steps <- c()
+  for(i in 1:nrow(data)){
+    if(data[i, 4] == 0){
+      sitting_steps <- c(sitting_steps, data[i, 7])
+      sitting_time <- c(sitting_time, data[i, 3])
+    }else if(data[i, 4] == 1){
+      standing_steps <- c(standing_steps, data[i, 7])
+      standing_time <- c(standing_time, data[i, 3])
+    }else{
+      stepping_steps <- c(stepping_steps, data[i, 7])
+      stepping_time <- c(stepping_time, data[i, 3])
+    }
+  }
+  stats <- data.frame(matrix(nrow=15, ncol=3), row.names=c("count", "minimum time", "maximum time", "mean time", "median time", "time standard deviation", "time coefficient of deviation", "total time", "minimum steps", "maximum steps", "mean steps", "median steps", "steps standard deviation", "steps coefficient of deviation", "total steps"))
+  colnames(stats) <- c("sitting", "standing", "stepping")
+  
+  stats[1, 1] <- length(sitting_time)
+  stats[1, 2] <- length(standing_time)
+  stats[1, 3] <- length(stepping_time)
+  stats[2, 1] <- min(sitting_time)
+  stats[2, 2] <- min(standing_time)
+  stats[2, 3] <- min(stepping_time)
+  stats[3, 1] <- max(sitting_time)
+  stats[3, 2] <- max(standing_time)
+  stats[3, 3] <- max(stepping_time)
+  stats[4, 1] <- mean(sitting_time)
+  stats[4, 2] <- mean(standing_time)
+  stats[4, 3] <- mean(stepping_time)
+  stats[5, 1] <- median(sitting_time)
+  stats[5, 2] <- median(standing_time)
+  stats[5, 3] <- median(stepping_time)
+  stats[6, 1] <- sd(sitting_time)
+  stats[6, 2] <- sd(standing_time)
+  stats[6, 3] <- sd(stepping_time)
+  stats[7, 1] <- sd(sitting_time) / mean(sitting_time)
+  stats[7, 2] <- sd(standing_time) / mean(standing_time)
+  stats[7, 3] <- sd(stepping_time) / mean(stepping_time)
+  stats[8, 1] <- sum(sitting_time)
+  stats[8, 2] <- sum(standing_time)
+  stats[8, 3] <- sum(stepping_time)
+  
+  stats[9, 1] <- min(sitting_steps)
+  stats[9, 2] <- min(standing_steps)
+  stats[9, 3] <- min(stepping_steps)
+  stats[10, 1] <- max(sitting_steps)
+  stats[10, 2] <- max(standing_steps)
+  stats[10, 3] <- max(stepping_steps)
+  stats[11, 1] <- mean(sitting_steps)
+  stats[11, 2] <- mean(standing_steps)
+  stats[11, 3] <- mean(stepping_steps)
+  stats[12, 1] <- median(sitting_steps)
+  stats[12, 2] <- median(standing_steps)
+  stats[12, 3] <- median(stepping_steps)
+  stats[13, 1] <- sd(sitting_steps)
+  stats[13, 2] <- sd(standing_steps)
+  stats[13, 3] <- sd(stepping_steps)
+  stats[14, 1] <- sd(sitting_steps) / mean(sitting_steps)
+  stats[14, 2] <- sd(standing_steps) / mean(standing_steps)
+  stats[14, 3] <- sd(stepping_steps) / mean(stepping_steps)
+  stats[15, 1] <- sum(sitting_steps)
+  stats[15, 2] <- sum(standing_steps)
+  stats[15, 3] <- sum(stepping_steps)
+  return(stats)
+}
+
 working_directory <- "C:/Users/User/Desktop/PNC_Lab/activPAL-bout-detection"
 setwd(working_directory)
 folders <- Sys.glob(paste(working_directory, "/INPUT/*", sep=""))
 dir.create(file.path(working_directory, "/OUTPUT"), showWarnings = FALSE)
-dir.create(file.path(paste(working_directory, "/OUTPUT", sep=""), "/heat_maps"), showWarnings = FALSE)
-dir.create(file.path(paste(working_directory, "/OUTPUT", sep=""), "/valid_data"), showWarnings = FALSE)
+output <- paste(working_directory, "/OUTPUT", sep="")
+dir.create(file.path(output, "/heat_maps"), showWarnings = FALSE)
+dir.create(file.path(output, "/valid_data"), showWarnings = FALSE)
+dir.create(file.path(output, "/summary_statistics"), showWarnings = FALSE)
+dir.create(file.path(output, "/group_statistics"), showWarnings = FALSE)
+heat_maps <- paste(output, "/heat_maps", sep="")
+valid_data <- paste(output, "/valid_data", sep="")
+summary_statistics <- paste(output, "/summary_statistics", sep="")
+group_statistics <- paste(output, "/group_statistics", sep="")
 all_data <- c()
 for(folder in folders){
   group_data <- c()
-  dir.create(file.path(paste(working_directory, "/OUTPUT/heat_maps", sep=""), basename(folder)), showWarnings = FALSE)
-  dir.create(file.path(paste(working_directory, "/OUTPUT/valid_data", sep=""), basename(folder)), showWarnings = FALSE)
+  dir.create(file.path(heat_maps, basename(folder)), showWarnings = FALSE)
+  dir.create(file.path(valid_data, basename(folder)), showWarnings = FALSE)
+  dir.create(file.path(summary_statistics, basename(folder)), showWarnings = FALSE)
+  dir.create(file.path(group_statistics, basename(folder)), showWarnings = FALSE)
   files <- Sys.glob(paste(folder, "/*", sep=""))
+  average_sed_bout_times <- c()
+  num_sed_bouts <- c()
   for(file in files){
-    rm(list= setdiff(ls(), c("working_directory", "folders", "folder", "files", "file", "all_data", "group_data", "SLNW")))
-    group_data <- c(group_data, SLNW(folder, file))
+    print(paste("RUNNING SLNW ON FILE", file, sep=" "))
+    rm(list= setdiff(ls(), c("SLNW", "get_summary_statistics", "working_directory", "folders", "output", "heat_maps", "valid_data", "summary_statistics", "group_statistics", "all_data", "folder", "group_data", "files", "average_sed_bout_times", "num_sed_bouts", "file")))
+    data <- SLNW(folder, file)
+    if(nrow(data) > 0){
+      stats <- get_summary_statistics(data)
+      write.csv(stats, file=paste(summary_statistics, "/", basename(folder), "/", basename(file), "-SUMMARY STATISTICS.csv", sep=""), row.names = TRUE)
+      data[, ncol(data)] <- NULL
+      write.csv(data, file=paste(valid_data, "/", basename(folder), "/", basename(file), ".csv", sep=""), row.names = FALSE)
+      group_data <- c(group_data, data)
+      num_sed_bouts <- c(num_sed_bouts, (stats[1, 1] + stats[1, 2]))
+      a <- ((stats[1, 1] * stats[4, 1]) + (stats[1, 2] * stats[4, 2])) / (stats[1, 1] + stats[1, 2])
+      average_sed_bout_times <- c(average_sed_bout_times, a)
+    }else{
+      stats <- get_summary_statistics(data)
+      write.csv(stats, file=paste(summary_statistics, "/", basename(folder), "/", basename(file), "-SUMMARY STATISTICS.csv", sep=""), row.names = TRUE)
+      write.csv(data, file=paste(valid_data, "/", basename(folder), "/", basename(file), ".csv", sep=""), row.names = FALSE)
+      group_data <- c(group_data, data)
+    }
   }
+  gini_coeff <- data.frame(gini(average_sed_bout_times, num_sed_bouts))
+  write.csv(gini_coeff, file=paste(group_statistics, "/", basename(folder), ".csv", sep=""), row.names = FALSE)
+  print(gini(average_sed_bout_times, num_sed_bouts))
+  
   all_data <- c(group_data)
 }
