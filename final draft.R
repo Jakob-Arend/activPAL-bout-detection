@@ -1,9 +1,10 @@
 #active Pal Algorithm----
 
 #Code constants ----
-consecutive_days <- 7
 working_directory <- "C:/Users/User/Desktop/PNC_Lab/activPAL-bout-detection"
 path <- "sample_data/SA009-SA009-AP840032 11Apr19 12-00am for 12d 16h 22m-VANE-PB08090417-Events.csv"
+
+consecutive_days <- 7
 always_slnw_min_hours <- 5
 longest_only_slnw_min_hours <- 2
 before_window_mins <- 15
@@ -12,11 +13,9 @@ always_slnw_surrounding_hours <- 2
 longest_slnw_surrounding_mins <- 30
 slnw_surrounding_steps <- 20
 slnw_surrounding_steps_with_posture_changes <- 0
-invalid_day_largest_bout_percentage <- 95
+invalid_day_largest_bout_percentage <- 0.95
 invalid_day_min_step_count <- 500
 invalid_day_min_hours <- 10
-
-
 
 #Helper functions for later in the code ----
 convert_time <- function(time_string) {
@@ -61,7 +60,13 @@ search_backwards <- function(slnw_index, data){
 
 #Convert from .csv to data frame ----
 setwd(working_directory)
+raw_data <- activpalProcessing::activpal.file.reader(path)
 data <- activpalProcessing::activpal.file.reader(path)
+
+data$steps <- integer(nrow(data))
+for(i in 2:nrow(data)){
+  data[i, 7] <- data[i, 5] - data[i-1, 5]
+}
 
 #Cut data to valid window ----
 first_day <- convert_time(data[1, 1])[1]
@@ -98,22 +103,22 @@ for(i in 1:(length(days)-consecutive_days+1)){
 }
 
 valid_days <- days[window_start_index:(window_start_index+consecutive_days-1)]
-to_remove <- c()
+excluded_indices <- c()
 for(i in 1:nrow(data)){
   date <- convert_time(data[i, 1])[1]
   if(!(date %in% valid_days)){
-    to_remove <- c(to_remove, i)
+    excluded_indices <- c(excluded_indices, i)
   }
 }
-if(length(to_remove) != 0){
-  data_outside_experimental_window <- data[to_remove,]
-  data <- data[-to_remove,]
+if(length(excluded_indices) != 0){
+  experimental_window_excluded_data <- data[excluded_indices,]
+  data <- data[-excluded_indices,]
 }else{
-  data_outside_experimental_window <- data.frame(matrix(ncol=ncol(data), nrow=0))
-  colnames(data_outside_experimental_window) <- colnames(data)
+  experimental_window_excluded_data <- data.frame(matrix(ncol=ncol(data), nrow=0))
+  colnames(experimental_window_excluded_data) <- colnames(data)
 }
 
-rm(steps_per_day, curr_max, date, days, first_day, i, j, last_day, potential_max, to_remove, window_start_index)
+rm(steps_per_day, curr_max, date, days, first_day, i, j, last_day, potential_max, excluded_indices, window_start_index)
 
 #Remove SLNW bouts ----
 data <- transform(data, cumulativesteps=cumulativesteps-data[1,5])
@@ -172,8 +177,85 @@ for(i in 1:length(slnw_indices)){
 
 slnw_indices <- sort(slnw_indices)
 
-slnw_data <- data[slnw_indices,]
-data <- data[-c(slnw_indices),]
+if(length(slnw_indices) != 0){
+  slnw_data <- data[slnw_indices,]
+  data <- data[-slnw_indices,]
+}else{
+  slnw_data <- data.frame(matrix(ncol=ncol(data), nrow=0))
+  colnames(slnw_data) <- colnames(data)
+}
 
 rm(backward, forward, curr_slnw_index, slnw_indices, i, noon_day_indices, noon_day_maxes, noon_index)
+
 #Remove data from invalid days ----
+longest_waking_wear_hours <- c()
+total_steps <- c()
+total_waking_wear_hours <- c()
+for(i in 1:length(valid_days)){
+  longest_waking_wear_hours <- c(longest_waking_wear_hours, -1)
+  total_steps <- c(total_steps, -1)
+  total_waking_wear_hours <- c(total_waking_wear_hours, -1)
+}
+
+if(nrow(data) <= 1){
+  print("ERROR: Insufficient data remains after reducing to experimental window and removing SLNW bouts")
+}
+old_day <- convert_time(data[1, 1])[1]
+start_index <- 1
+day_index <- match(old_day, valid_days)
+edge_case <- FALSE
+for(i in 1:nrow(data)){
+  curr_day <- convert_time(data[i, 1])[1]
+  if(curr_day != old_day){
+    total_steps[day_index] <- data[i-1, 5] - data[start_index, 5]
+    total_waking_wear_hours[day_index] <- as.numeric(difftime(data[i-1, 1], data[start_index, 1], units="hours"))
+    old_day <- curr_day
+    start_index <- i
+    day_index <- match(old_day, valid_days)
+    if(i == nrow(data)){
+      edge_case <- TRUE
+    }
+  }
+  if((data[i, 3] / 3600)> longest_waking_wear_hours[day_index]){
+    longest_waking_wear_hours[day_index] <- (data[i,3] / 3600)
+  }
+}
+if(edge_case){
+  old_day <- convert_time(data[nrow(data), 1])[1]
+  day_index <- match(old_day, valid_days)
+  longest_waking_wear_hours[day_index] <- (data[nrow(data), 3] / 3600)
+  total_steps[day_index] <- (data[nrow(data), 5] - data[nrow(data)-1, 5])
+  total_waking_wear_hours[day_index] <- (data[nrow(data), 3] / 3600)
+}else{
+  total_steps[day_index] <- data[nrow(data), 5] - data[start_index, 5]
+  total_waking_wear_hours[day_index] <- as.numeric(difftime(data[nrow(data), 1], data[start_index, 1], units="hours"))
+}
+
+invalid_days <- c()
+for(i in 1:length(valid_days)){
+  if((longest_waking_wear_hours[i] / total_waking_wear_hours[i]) >= invalid_day_largest_bout_percentage || total_steps[i] < invalid_day_min_step_count || total_waking_wear_hours[i] < invalid_day_min_hours){
+    invalid_days <- c(invalid_days, valid_days[i])
+  }
+}
+
+invalid_day_indices <- c()
+for(i in 1:nrow(data)){
+  curr_day <- convert_time(data[i, 1])[1]
+  if(curr_day %in% invalid_days){
+    invalid_day_indices <- c(invalid_day_indices, i)
+  }
+}
+
+if(length(invalid_day_indices) != 0){
+  invalid_day_data <- data[invalid_day_indices,]
+  data <- data[-invalid_day_indices,]
+}else{
+  invalid_day_data <- data.frame(matrix(ncol=ncol(data), nrow=0))
+  colnames(invalid_day_data) <- colnames(data)
+}
+
+valid_days <- setdiff(valid_days, invalid_days)
+
+rm(curr_day, day_index, edge_case, i, invalid_day_indices, longest_waking_wear_hours, old_day, start_index, total_steps, total_waking_wear_hours)
+
+#Summary Statistics ----
