@@ -1,9 +1,9 @@
-SLNW <- function(file){
+SLNW <- function(folder, file){
   #Code constants ----
   file_parts <- unlist(strsplit(file, "/"))
   num_parts <- length(file_parts)
   path <- paste(file_parts[num_parts-2], "/", file_parts[num_parts-1], "/", file_parts[num_parts], sep="")
-  heatmap_path <- paste("OUTPUT/heat_maps/", file_parts[num_parts], "-HEAT MAP.png", sep="")
+  heatmap_path <- paste("OUTPUT/heat_maps/", basename(folder), "/", file_parts[num_parts], "-HEAT MAP.png", sep="")
   
   consecutive_days <- 7
   always_slnw_min_hours <- 5
@@ -305,13 +305,18 @@ SLNW <- function(file){
 working_directory <- "C:/Users/User/Desktop/PNC_Lab/activPAL-bout-detection"
 setwd(working_directory)
 folders <- Sys.glob(paste(working_directory, "/INPUT/*", sep=""))
+dir.create(file.path(working_directory, "/OUTPUT"), showWarnings = FALSE)
+dir.create(file.path(paste(working_directory, "/OUTPUT", sep=""), "/heat_maps"), showWarnings = FALSE)
+dir.create(file.path(paste(working_directory, "/OUTPUT", sep=""), "/valid_data"), showWarnings = FALSE)
 all_data <- c()
 for(folder in folders){
   group_data <- c()
+  dir.create(file.path(paste(working_directory, "/OUTPUT/heat_maps", sep=""), basename(folder)), showWarnings = FALSE)
+  dir.create(file.path(paste(working_directory, "/OUTPUT/valid_data", sep=""), basename(folder)), showWarnings = FALSE)
   files <- Sys.glob(paste(folder, "/*", sep=""))
   for(file in files){
     rm(list= setdiff(ls(), c("working_directory", "folders", "folder", "files", "file", "all_data", "group_data", "SLNW")))
-    group_data <- c(group_data, SLNW(file))
+    group_data <- c(group_data, SLNW(folder, file))
   }
   all_data <- c(group_data)
 }
