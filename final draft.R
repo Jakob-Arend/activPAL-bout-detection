@@ -1,8 +1,17 @@
-#active Pal Algorithm----
+#Reset environment ----
+rm(list = ls())
 
 #Code constants ----
 working_directory <- "C:/Users/User/Desktop/PNC_Lab/activPAL-bout-detection"
-path <- "sample_data/SA009-SA009-AP840032 11Apr19 12-00am for 12d 16h 22m-VANE-PB08090417-Events.csv"
+
+paths <- c("SA001-SA001-AP840027 8Mar19 12-00am for 14d-VANE-PB08090417-Events.csv", "SA001-SA001-AP840027 20Feb19 12-00am for 7d 16h 33m-VANE-PB08101257-Events.csv",
+           "SA002-SA002-AP840026 20Feb19 12-00am for 7d 17h 11m-VANE-PB08101257-Events.csv", "SA004-AP840029 20Feb19 4-14pm for 7d-VANE-PB08101257-Events.csv",
+           "SA004-SA004-AP840033 3Apr19 12-00am for 6d 17h 41m-VANE-PB08090417-Events.csv", "SA005-AP840030 20Feb19 4-17pm for 6d 23h 59m-VANE-PB08101257-Events.csv",
+           "SA005-SA005-AP840023 4Apr19 12-00am for 8d 16h 8m-VANE-PB08090417-Events.csv", "SA006-AP840024 20Feb19 4-15pm for 7d-VANE-PB08101257-Events.csv",
+           "SA006-SA006-AP840029 5Apr19 12-00am for 11d 17h 24m-VANE-PB08090417-Events.csv", "SA007-SA007-AP840030 6Apr19 12-00am for 14d-VANE-PB08090417-Events.csv",
+           "SA008-SA008-AP840031 9Apr19 12-00am for 13d 16h 23m-VANE-PB08090417-Events.csv", "SA009-SA009-AP840032 11Apr19 12-00am for 12d 16h 22m-VANE-PB08090417-Events.csv",
+           "SA010-SA010-AP840027 16Apr19 12-00am for 8d 17h 11m-VANE-PB08090417-Events.csv", "SA011-SA011-AP840025 17Apr19 12-00am for 6d 17h 22m-VANE-PB08090417-Events.csv")
+path <- paste("sample_data/", paths[3], sep="")
 
 consecutive_days <- 7
 always_slnw_min_hours <- 5
@@ -259,3 +268,4 @@ valid_days <- setdiff(valid_days, invalid_days)
 rm(curr_day, day_index, edge_case, i, invalid_day_indices, longest_waking_wear_hours, old_day, start_index, total_steps, total_waking_wear_hours)
 
 #Summary Statistics ----
+
