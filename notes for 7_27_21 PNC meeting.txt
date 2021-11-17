@@ -5,6 +5,8 @@ statistics to calculate:
 			power distribution (C, alpha)
 			standard error
 			median of power law distribution
+			GRAPH: sedentary bout lengths by seconds and Lorentz curve of how the sedentary bouts skew
+				Gini coefficient can be used instead of graphing as it captures the essential info of the graph
 		measure of pattern of sedentary time accumulation
 			time in sedentary bouts above median
 
@@ -23,3 +25,23 @@ final todo:
 	calculate whatever summary statistics are needed
 	output an activPAL heat map
 	output to .csv instead of dataframe
+
+TOTAL STATISTICS:
+	sedentary behavior profiling
+		start, finish, duration
+		average num of bouts per day
+		average duration, min, max, median, standard deviation, coefficient of variation
+		less than 20 min duration, 20 min or more, all bouts
+		30, 60, 90 replacements for 20
+		less than 5, 5-9:59, 10 and less than 20
+		inclusive and exclusive bounds
+	moderate to vigorous physical activity
+		10 or more and less than 10
+	breaks in sedentary behavior
+		frequency per day
+		mean median standard dev coefficient
+		bucket for stepping, standing
+		light vs moderate
+			sum stat of step count and activity score and time
+	get exact stats
+	make model

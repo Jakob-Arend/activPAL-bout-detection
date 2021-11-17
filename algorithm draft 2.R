@@ -86,7 +86,7 @@ for(i in 1:length(paths)){
   }
   step_counts[, 1] <- NULL
   if(ncol(step_counts) < num_days){
-    print("USER HAS SPECIFIED MORE DAYS THAN ARE AVAILABLE.  REDUCING 'num_days' TO:")
+    print("USER HAS SPECIFIED MORE DAYS THAN ARE AVAILABLE.  REDUCING 'num_days' TO:" + as.character())
     print(ncol(step_counts))
     num_days <- ncol(step_counts)
   }
