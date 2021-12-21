@@ -360,3 +360,4 @@ for(folder in folders){
   }
   get_summary_statistics(paste(summary_statistics, "/", basename(folder), sep=""), paste(basename(folder), "summary statistics", sep=" "), group_data, c())
 }
+
