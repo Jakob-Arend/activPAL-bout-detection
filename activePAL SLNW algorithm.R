@@ -317,8 +317,22 @@ SLNW <- function(folder, file){
 
 
 
-get_summary_statistics <- function(folder, base_file, data, params) {
-  write.csv(data, file=paste(folder, "/", base_file, ".csv", sep=""), row.names = FALSE)
+get_summary_statistics <- function(file, data, instructions) {
+  
+  get_statistics <- function(instruction){
+    return(c("please", "work"))
+  }
+  
+  colnames <- unique(instructions$names)
+  rownames <- unique(instructions$stat_type)
+  summ_stats <- data.frame(matrix(ncol=length(colnames), nrow=length(rownames)))
+  colnames(summ_stats) <- colnames
+  rownames(summ_stats) <- rownames
+  for(i in 1:nrow(instructions)){
+    instruction <- instructions[i,]
+    summ_stats[, instruction$names] <- get_statistics(instruction)
+  }
+  write.csv(summ_stats, file=file)
 }
 
 
@@ -337,6 +351,14 @@ summary_statistics <- paste(output, "/summary_statistics", sep="")
 
 
 
+M1<-rep(c("A","B"),each=5)
+dim(M1) <- c(5, 2)
+M1[2, 1] <- "X"
+M1[4, 2] <- "Y"
+colnames(M1) <- c("names", "stat_type")
+test <- as.data.frame(M1)
+
+
 all_data <- c()
 for(folder in folders){
   dir.create(file.path(heat_maps, basename(folder)), showWarnings = FALSE)
@@ -352,12 +374,12 @@ for(folder in folders){
   files <- Sys.glob(paste(folder, "/*", sep=""))
   for(file in files){
     print(paste("RUNNING SLNW ON FILE", file, sep=" "))
-    rm(list=setdiff(ls(), c("SLNW", "working_directory", "folders", "output", "heat_maps", "valid_data", "folder", "files", "file", "get_summary_statistics", "summary_statistics", "group_data")))
+    rm(list=setdiff(ls(), c("test", "SLNW", "working_directory", "folders", "output", "heat_maps", "valid_data", "folder", "files", "file", "get_summary_statistics", "summary_statistics", "group_data")))
     data <- SLNW(folder, file)
     group_data <- rbind(group_data, data)
     write.csv(data, file=paste(valid_data, "/", basename(folder), "/", tools::file_path_sans_ext(basename(file)), "-VALID DATA.csv", sep=""), row.names = FALSE)
-    get_summary_statistics(paste(summary_statistics, "/", basename(folder), sep=""), tools::file_path_sans_ext(basename(file)), data, c())
+    get_summary_statistics(paste(summary_statistics, "/", basename(folder), "/", tools::file_path_sans_ext(basename(file)), "-SUMMARY STATISTICS.csv", sep=""), data, test)
   }
-  get_summary_statistics(paste(summary_statistics, "/", basename(folder), sep=""), paste(basename(folder), "summary statistics", sep=" "), group_data, c())
+  get_summary_statistics(paste(summary_statistics, "/", basename(folder), "/", basename(folder), " summary statistics.csv", sep=""), group_data, test)
 }
 
