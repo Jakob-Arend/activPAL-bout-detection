@@ -1,16 +1,31 @@
+#Environment preparation ----
 rm(list = ls())
 library(activpalProcessing)
 library(lubridate)
 library(ggplot2)
+#Helper functions to main ----
+create_directories <- function(working_directory){
+  dir.create(file.path(working_directory, "/OUTPUT"), showWarnings = FALSE)
+  output <- paste(working_directory, "/OUTPUT", sep="")
+  dir.create(file.path(output, "/heat_maps"), showWarnings = FALSE)
+  dir.create(file.path(output, "/valid_data"), showWarnings = FALSE)
+  dir.create(file.path(output, "/summary_statistics"), showWarnings = FALSE)
+  heat_maps <- paste(output, "/heat_maps", sep="")
+  valid_data <- paste(output, "/valid_data", sep="")
+  summary_statistics <- paste(output, "/summary_statistics", sep="")
+  for(folder in Sys.glob(paste(working_directory, "/INPUT/*", sep=""))){
+    dir.create(file.path(heat_maps, paste(basename(folder), "heat maps", sep=" ")), showWarnings = FALSE)
+    dir.create(file.path(valid_data, paste(basename(folder), "valid data", sep=" ")), showWarnings = FALSE)
+    dir.create(file.path(summary_statistics, paste(basename(folder), "summary statistics", sep=" ")), showWarnings = FALSE)
+  }
+}
 
-
-
-SLNW <- function(folder, file){
+SLNW <- function(file){
   #Algorithm constants ----
   file_parts <- unlist(strsplit(file, "/"))
   num_parts <- length(file_parts)
   path <- paste(file_parts[num_parts-2], "/", file_parts[num_parts-1], "/", file_parts[num_parts], sep="")
-  heatmap_path <- paste("OUTPUT/heat_maps/", basename(folder), "/", tools::file_path_sans_ext(basename(file)), "-HEAT MAP.png", sep="")
+  heatmap_path <- paste("OUTPUT/heat_maps/", paste(file_parts[num_parts - 1], "heat maps", sep=" "), "/", tools::file_path_sans_ext(basename(file)), "-HEAT MAP.png", sep="")
   
   consecutive_days <- 7
   always_slnw_min_hours <- 5
@@ -315,71 +330,151 @@ SLNW <- function(folder, file){
   return(data)
 }
 
+format_instructions <- function(instructions){
+  name <- c()
+  type <- c()
+  lower_bound <- c()
+  upper_bound <- c()
+  lower_exclusive <- c()
+  upper_exclusive <- c()
+  for(i in 0:(length(instructions) / 6 - 1)){
+    curr_start <- 6 * i + 1
+    name <- c(name, instructions[[curr_start]])
+    type <- c(type, instructions[[curr_start+1]])
+    lower_bound <- c(lower_bound, instructions[[curr_start+2]])
+    upper_bound <- c(upper_bound, instructions[[curr_start+3]])
+    lower_exclusive <- c(lower_exclusive, instructions[[curr_start+4]])
+    upper_exclusive <- c(upper_exclusive, instructions[[curr_start+5]])
+  }
+  return(data.frame(name, type, lower_bound, upper_bound, lower_exclusive, upper_exclusive))
+}
 
+filter_data <- function(data, type, lower_bound=0, upper_bound=Inf, lower_exclusive=TRUE, upper_exclusive=TRUE){
+  if(type == "Sedentary"){
+    filter <- c(0, 1)
+  } else if(type == "Stepping"){
+    filter <- c(2)
+  } else if(type == "All"){
+    filter <- c(0, 1, 2)
+  } else{
+    filter <- c()
+  }
+  if(lower_exclusive & upper_exclusive){return(subset(data, data$activity %in% filter & data$interval > lower_bound & data$interval < upper_bound))
+  } else if(upper_exclusive){
+    return(subset(data, data$activity %in% filter & data$interval >= lower_bound & data$interval < upper_bound))
+  } else if(lower_exclusive){
+    return(subset(data, data$activity %in% filter & data$interval > lower_bound & data$interval <= upper_bound))
+  } else{
+    return(subset(data, data$activity %in% filter & data$interval >= lower_bound & data$interval <= upper_bound))
+  }
+}
+
+pnc_summary_statistics <- function(data){
+  if(length(data > 0)){
+    num_bouts <- length(data)
+    avg <- mean(data)
+    min <- min(data)
+    max <- max(data)
+    median <- median(data)
+    iqr <- IQR(data)
+    stddev <- sd(data)
+    cv <- 100 * stddev / avg
+    return(c(num_bouts, avg, min, max, median, iqr, stddev, cv))
+  }
+  return(rep(c(NaN), 8))
+}
 
 get_summary_statistics <- function(file, data, instructions) {
-  
-  get_statistics <- function(instruction){
-    return(c("please", "work"))
+  if(nrow(data) == 0){
+    names <- instructions$name
+    colnames <- c()
+    for(j in 1:length(names)){
+      colnames <- c(colnames, paste("combined", names[j], sep=" "))
+    }
+    rownames <- c("num bouts", "average duration", "min duration", "max duration", "median duration", "duration interquartile range", "duration stddev", "duration coeff of variation")
+    summ_stats <- data.frame(matrix(ncol=length(colnames), nrow=length(rownames)))
+    colnames(summ_stats) <- colnames
+    rownames(summ_stats) <- rownames
+    write.csv(summ_stats, file=file)
+  } else{
+    days <- c()
+    reduced_time <- c()
+    for(i in 1:nrow(data)){
+      curr_day <- unlist(strsplit(paste(data[i,1]), " "))[1]
+      if(!(curr_day %in% days)){
+        days <- c(days, curr_day)
+      }
+      reduced_time <- c(reduced_time, curr_day)
+    }
+    data$day <- reduced_time
+    
+    names <- instructions$name
+    colnames <- c()
+    for(i in 1:length(days)){
+      for(j in 1:length(names)){
+        colnames <- c(colnames, paste(days[i], names[j], sep=" "))
+      }
+    }
+    for(j in 1:length(names)){
+      colnames <- c(colnames, paste("combined", names[j], sep=" "))
+    }
+    rownames <- c("num bouts", "average duration", "min duration", "max duration", "median duration", "duration interquartile range", "duration stddev", "duration coeff of variation")
+    summ_stats <- data.frame(matrix(ncol=length(colnames), nrow=length(rownames)))
+    colnames(summ_stats) <- colnames
+    rownames(summ_stats) <- rownames
+    
+    for(i in 1:length(days)){
+      curr_data <- subset(data, data$day == days[i])
+      for(j in 1:nrow(instructions)){
+        curr <- instructions[j,]
+        filtered_data <- filter_data(curr_data, curr$type, curr$lower_bound, curr$upper_bound, curr$lower_exclusive, curr$upper_exclusive)
+        summ_stats[, paste(days[i], curr$name, sep=" ")] <- pnc_summary_statistics(filtered_data$interval)
+      }
+    }
+    
+    for(i in 1:nrow(instructions)){
+      curr <- instructions[i,]
+      filtered_data <- filter_data(data, curr$type, curr$lower_bound, curr$upper_bound, curr$lower_exclusive, curr$upper_exclusive)
+      summ_stats[, paste("combined", curr$name, sep=" ")] <- pnc_summary_statistics(filtered_data$interval)
+    }
+    write.csv(summ_stats, file=file)
   }
+}
+#Main function ----
+main <- function(working_directory){
+  setwd(working_directory)
+  folders <- Sys.glob(paste(working_directory, "/INPUT/*", sep=""))
+  create_directories(working_directory)
   
-  colnames <- unique(instructions$names)
-  rownames <- unique(instructions$stat_type)
-  summ_stats <- data.frame(matrix(ncol=length(colnames), nrow=length(rownames)))
-  colnames(summ_stats) <- colnames
-  rownames(summ_stats) <- rownames
-  for(i in 1:nrow(instructions)){
-    instruction <- instructions[i,]
-    summ_stats[, instruction$names] <- get_statistics(instruction)
+  instructions <- format_instructions(list("sedentary less than 20 mins", "Sedentary", 0, 20 * 60, TRUE, TRUE,
+                                           "sedentary more than 20 mins", "Sedentary", 20*60, Inf, FALSE, TRUE,
+                                           "sedentary all bouts", "Sedentary", 0, Inf, TRUE, TRUE,
+                                           "stepping less than 20 mins", "Stepping", 0, 20 * 60, TRUE, TRUE,
+                                           "stepping more than 20 mins", "Stepping", 20*60, Inf, FALSE, TRUE,
+                                           "stepping all bouts", "Stepping", 0, Inf, TRUE, TRUE,
+                                           "all bouts less than 20 mins", "All", 0, 20 * 60, TRUE, TRUE,
+                                           "all bouts more than 20 mins", "All", 20*60, Inf, FALSE, TRUE,
+                                           "all bouts", "All", 0, Inf, TRUE, TRUE))
+  for(folder in folders){
+    group_data <- data.frame(time=as.Date(character()),
+                             datacount=integer(),
+                             interval=double(),
+                             activity=integer(),
+                             cumulativesteps=integer(),
+                             methrs=double(),
+                             steps=integer())
+    files <- Sys.glob(paste(folder, "/*", sep=""))
+    for(file in files){
+      rm(list=setdiff(ls(), c("SLNW", "filter_data", "pnc_summary_statistics", "get_summary_statistics", "format_instructions", "create_directories", "working_directory", "folders", "instructions", "folder", "group_data", "files", "file")))
+      data <- SLNW(file)
+      group_data <- rbind(group_data, data)
+      write.csv(data, file=paste(working_directory, "/OUTPUT/valid_data/", paste(basename(folder), "valid data", sep=" "), "/", tools::file_path_sans_ext(basename(file)), "-VALID DATA.csv", sep=""), row.names = FALSE)
+      get_summary_statistics(paste(working_directory, "/OUTPUT/summary_statistics/", paste(basename(folder), "summary statistics", sep=" "), "/", tools::file_path_sans_ext(basename(file)), "-SUMMARY STATISTICS.csv", sep=""), data, instructions)
+    }
   }
-  write.csv(summ_stats, file=file)
 }
 
-
-
+#Main execution ----
 working_directory <- "C:/Users/User/Desktop/PNC_Lab/activPAL-bout-detection"
-setwd(working_directory)
-folders <- Sys.glob(paste(working_directory, "/INPUT/*", sep=""))
-dir.create(file.path(working_directory, "/OUTPUT"), showWarnings = FALSE)
-output <- paste(working_directory, "/OUTPUT", sep="")
-dir.create(file.path(output, "/heat_maps"), showWarnings = FALSE)
-dir.create(file.path(output, "/valid_data"), showWarnings = FALSE)
-dir.create(file.path(output, "/summary_statistics"), showWarnings = FALSE)
-heat_maps <- paste(output, "/heat_maps", sep="")
-valid_data <- paste(output, "/valid_data", sep="")
-summary_statistics <- paste(output, "/summary_statistics", sep="")
-
-
-
-M1<-rep(c("A","B"),each=5)
-dim(M1) <- c(5, 2)
-M1[2, 1] <- "X"
-M1[4, 2] <- "Y"
-colnames(M1) <- c("names", "stat_type")
-test <- as.data.frame(M1)
-
-
-all_data <- c()
-for(folder in folders){
-  dir.create(file.path(heat_maps, basename(folder)), showWarnings = FALSE)
-  dir.create(file.path(valid_data, basename(folder)), showWarnings = FALSE)
-  dir.create(file.path(summary_statistics, basename(folder)), showWarnings = FALSE)
-  group_data <- data.frame(time=as.Date(character()),
-                           datacount=integer(),
-                           interval=double(),
-                           activity=integer(),
-                           cumulativesteps=integer(),
-                           methrs=double(),
-                           steps=integer())
-  files <- Sys.glob(paste(folder, "/*", sep=""))
-  for(file in files){
-    print(paste("RUNNING SLNW ON FILE", file, sep=" "))
-    rm(list=setdiff(ls(), c("test", "SLNW", "working_directory", "folders", "output", "heat_maps", "valid_data", "folder", "files", "file", "get_summary_statistics", "summary_statistics", "group_data")))
-    data <- SLNW(folder, file)
-    group_data <- rbind(group_data, data)
-    write.csv(data, file=paste(valid_data, "/", basename(folder), "/", tools::file_path_sans_ext(basename(file)), "-VALID DATA.csv", sep=""), row.names = FALSE)
-    get_summary_statistics(paste(summary_statistics, "/", basename(folder), "/", tools::file_path_sans_ext(basename(file)), "-SUMMARY STATISTICS.csv", sep=""), data, test)
-  }
-  get_summary_statistics(paste(summary_statistics, "/", basename(folder), "/", basename(folder), " summary statistics.csv", sep=""), group_data, test)
-}
-
+main(working_directory)
+rm(list = ls())
